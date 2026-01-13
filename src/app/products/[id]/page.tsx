@@ -29,6 +29,18 @@ const products = [
     price: 21900,
     description: 'แท็บเล็ตหน้าจอ Liquid Retina ขนาด 11 นิ้ว รองรับ Apple Pencil',
   },
+  {
+    id: 5,
+    name: 'โทรศัพท์มือถือ iPhone 15 Pro',
+    price: 39900,
+    description: 'สมาร์ทโฟนระดับโปรจาก Apple ที่โดดเด่นด้วย วัสดุไทเทเนียม น้ำหนักเบา, ชิป A17 Pro ที่ทรงพลัง',
+  },
+  {
+    id: 6,
+    name: 'หูฟัง Sony WH-1000XM3',
+    price: 12900,
+    description: 'หูฟังครอบหูไร้สายระดับพรีเมียม เน้น การตัดเสียงรบกวน (Noise Cancelling) ขั้นเทพ ด้วยชิป QN1',
+  },
 ];
 
 export default async function ProductDetailPage({
