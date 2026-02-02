@@ -1,79 +1,109 @@
-interface ProductDetailPageProps {
-  params: Promise<{
-    id: string;
-  }>;
+// app/products/[id]/page.tsx
+import AddToCartButton from '@/components/add-to-cart-button'
+import { Metadata } from 'next'
+import Image from 'next/image'
+
+// 1. นิยามโครงสร้างข้อมูล (Interface)
+interface Product {
+  id: number
+  name: string
+  price: string // ปรับเป็น string ตาม JSON จริงที่ตรวจเจอ
+  description?: string
+  barcode?: string
+  image?: string
 }
 
-const products = [
-  {
-    id: 1,
-    name: 'โทรศัพท์มือถือ Samsung Galaxy S24',
-    price: 25900,
-    description: 'สมาร์ตโฟนเรือธงพร้อมชิปประมวลผลรุ่นใหม่และกล้องคุณภาพสูง',
-  },
-  {
-    id: 2,
-    name: 'โน้ตบุ๊ก MacBook Air M3',
-    price: 42900,
-    description: 'โน้ตบุ๊กบางเบาที่มาพร้อมชิป Apple M3 และแบตเตอรี่ใช้งานได้ตลอดวัน',
-  },
-  {
-    id: 3,
-    name: 'หูฟังไร้สาย AirPods Pro',
-    price: 8990,
-    description: 'หูฟังตัดเสียงรบกวน Active Noise Cancellation และ Spatial Audio',
-  },
-  {
-    id: 4,
-    name: 'แท็บเล็ต iPad Air',
-    price: 21900,
-    description: 'แท็บเล็ตหน้าจอ Liquid Retina ขนาด 11 นิ้ว รองรับ Apple Pencil',
-  },
-  {
-    id: 5,
-    name: 'โทรศัพท์มือถือ iPhone 15 Pro',
-    price: 39900,
-    description: 'สมาร์ทโฟนระดับโปรจาก Apple ที่โดดเด่นด้วย วัสดุไทเทเนียม น้ำหนักเบา, ชิป A17 Pro ที่ทรงพลัง',
-  },
-  {
-    id: 6,
-    name: 'หูฟัง Sony WH-1000XM3',
-    price: 12900,
-    description: 'หูฟังครอบหูไร้สายระดับพรีเมียม เน้น การตัดเสียงรบกวน (Noise Cancelling) ขั้นเทพ ด้วยชิป QN1',
-  },
-];
+interface ProductDetailPageProps {
+  params: Promise<{ id: string }>
+}
 
-export default async function ProductDetailPage({
-  params,
-}: ProductDetailPageProps) {
-  const { id } = await params;
-  const product = products.find((p) => p.id === parseInt(id));
+// 2. ฟังก์ชันดึงข้อมูลสินค้าตาม ID (Server-side)
+async function getProductById(id: string) {
+  const res = await fetch(`https://backend.codingthailand.com/v2/products/${id}`)
+  if (!res.ok) return null
+  const data = await res.json()
+  return data as Product
+}
 
+// 3. การทำ Dynamic SEO (Metadata)
+export async function generateMetadata({ params }: ProductDetailPageProps): Promise<Metadata> {
+  const { id } = await params
+  const product = await getProductById(id)
+
+  if (!product) return { title: 'ไม่พบสินค้า' }
+
+  return {
+    title: product.name,
+    description: product.description || product.name,
+    openGraph: {
+      title: product.name,
+      images: product.image || `https://picsum.photos/seed/${id}/600/600`, // Fallback รูปพรีวิว
+    },
+  }
+}
+
+// 4. ส่วนแสดงผลหลัก (Main Page Component)
+export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
+  const { id } = await params
+  const product = await getProductById(id)
+
+  // กรณีหาข้อมูลไม่เจอ
   if (!product) {
     return (
-      <main style={{ padding: '2rem' }}>
-        <h1>ไม่พบสินค้าที่คุณค้นหา</h1>
-        <p>กรุณาตรวจสอบรหัสสินค้าอีกครั้ง</p>
+      <main className="mx-auto max-w-7xl px-4 py-8 text-center">
+        <h1 className="mb-2 text-2xl font-bold">ไม่พบสินค้า</h1>
+        <p className="text-slate-600">ขออภัย ไม่พบสินค้าที่คุณกำลังมองหา</p>
       </main>
-    );
+    )
   }
 
   return (
-    <main style={{ padding: '2rem' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>{product.name}</h1>
-      <div
-        style={{
-          backgroundColor: '#f5f5f5',
-          padding: '2rem',
-          borderRadius: '8px',
-          marginBottom: '1rem',
-        }}
-      >
-        <p style={{ fontSize: '1.5rem', color: '#0070f3', fontWeight: 'bold' }}>
-          ฿{product.price.toLocaleString()}
-        </p>
+    <main className="mx-auto max-w-7xl px-4 py-8">
+      {/* Layout แบบ Grid 2 คอลัมน์ (รูปซ้าย รายละเอียดขวา) */}
+      <div className="grid gap-8 md:grid-cols-2">
+        
+        {/* ฝั่งรูปภาพ */}
+        <div className="relative aspect-square overflow-hidden rounded-lg bg-slate-100">
+          <Image
+            // Logic: ถ้า API ไม่มีรูป ให้ดึงจาก Picsum ทันที
+            src={product.image || `https://picsum.photos/seed/${product.id}/600/600`}
+            alt={product.name}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-contain"
+            priority // โหลดรูปนี้เป็นอันดับแรกของหน้า
+          />
+        </div>
+
+        {/* ฝั่งข้อมูลสินค้า */}
+        <div>
+          <h1 className="mb-4 text-3xl font-bold">{product.name}</h1>
+          
+          {product.barcode && (
+            <p className="mb-2 text-sm text-slate-500">รหัสสินค้า: {product.barcode}</p>
+          )}
+
+          <div className="mb-6 rounded-lg bg-slate-50 p-6">
+            <p className="text-3xl font-bold text-blue-600">
+              {/* แปลง String เป็น Number ก่อนทำ Format */}
+              ฿{Number(product.price).toLocaleString() || 'ไม่ระบุราคา'}
+            </p>
+          </div>
+
+          {product.description && (
+            <div className="mb-6">
+              <h2 className="mb-2 text-lg font-semibold">รายละเอียดสินค้า</h2>
+              <p className="leading-relaxed text-slate-700">{product.description}</p>
+            </div>
+          )}
+
+          <AddToCartButton 
+            productId={product.id}
+            productName={product.name}
+            productPrice={Number(product.price) || 0}
+          />
+        </div>
       </div>
-      <p style={{ lineHeight: '1.6', color: '#666' }}>{product.description}</p>
     </main>
-  );
+  )
 }
